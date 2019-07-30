@@ -9,10 +9,12 @@ from json import dumps
 
 bp = Blueprint(name='mock', import_name='bp', url_prefix='/api/mock')
 
+
 def get_id(data):
   request_str = dumps(data.get('name')).encode()
   hash_md5 = md5(bytes(request_str)).hexdigest()
   return hash_md5
+
 
 def get_mocks_dir():
     from os import environ
@@ -31,10 +33,16 @@ def get_db(app_name):
     return connection[app_name]
 
 
-@bp.route('/<string:mock_name>/appname/<string:app_name>', methods=['GET'])
+@bp.route('/', methods=['GET'])
+def index():
+    return bp.send_static_file('index.html')
+
+
+@bp.route('/mockname/<string:mock_name>/appname/<string:app_name>', methods=['GET'])
 def get_mock(mock_name, app_name):    
     db = get_db(app_name)
-    mock = db[app_name].find_one({'name': mock_name, 'appName': app_name})
+    query = {'name': mock_name, 'appName': app_name}
+    mock = db[app_name].find_one(query)
     if mock:
         return jsonify(mock.get('response')), 200
     return jsonify({}), 204
