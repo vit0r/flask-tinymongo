@@ -9,6 +9,10 @@ from json import dumps
 
 bp = Blueprint(name='mock', import_name='bp', url_prefix='/api/mock')
 
+def get_id(data):
+  request_str = dumps(data.get('name')).encode()
+  hash_md5 = md5(bytes(request_str)).hexdigest()
+  return hash_md5
 
 def get_mocks_dir():
     from os import environ
@@ -26,17 +30,11 @@ def get_db(app_name):
     connection = TinyMongoClient(foldername=mocks_dir.resolve())
     return connection[app_name]
 
-def get_id(data):
-  request_str = dumps(data).encode()
-  hash_md5 = md5(bytes(request_str)).hexdigest()
-  return hash_md5
 
-@bp.route('/', methods=['GET', 'CUSTOM'])
-def get_mock():
-    data = request.get_json()
-    app_name = data.get('appName')
+@bp.route('/<string:mock_name>/appname/<string:app_name>', methods=['GET'])
+def get_mock(mock_name, app_name):    
     db = get_db(app_name)
-    mock = db[app_name].find_one({'_id': get_id(data)})
+    mock = db[app_name].find_one({'name': mock_name, 'appName': app_name})
     if mock:
         return jsonify(mock.get('response')), 200
     return jsonify({}), 204
@@ -44,11 +42,11 @@ def get_mock():
 
 @bp.route('/create', methods=['POST'])
 def create_mock():
-    data = request.get_json()
-    app_name = data.get('appName')
-    data['_id'] = get_id(data)    
+    request_data = request.get_json()
+    app_name = request_data.get('appName')
     db = get_db(app_name)
-    data_id = db[app_name].insert_one(data).inserted_id
+    request_data['_id'] = get_id(request_data)
+    data_id = db[app_name].insert_one(request_data).inserted_id
     if data_id:
         return jsonify({'message': 'CREATED'}), 201
     return jsonify({'message': 'ERROR'}), 406
