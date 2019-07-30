@@ -1,0 +1,20 @@
+
+FROM python:3.7
+
+ENV PYTHONWARNINGS=ignore
+ENV APPLICATION_ROOT=/flask_app
+ENV FLASK_APP=${APPLICATION_ROOT}
+ENV FLASK_ENV=development
+ENV FLASK_PORT=5000
+ENV FLASK_HOST=0.0.0.0
+ENV FLASK_DEBUG=1
+
+RUN mkdir -p ${APPLICATION_ROOT}
+
+WORKDIR ${APPLICATION_ROOT}
+
+COPY ./* ./
+
+RUN python3.7 setup.py install
+
+ENTRYPOINT flask run -h ${FLASK_HOST} -p ${FLASK_PORT} --with-threads
